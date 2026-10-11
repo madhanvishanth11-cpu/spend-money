@@ -7,10 +7,13 @@ import {
   Smartphone,
   HardDrive,
   Info,
-  Check
+  Check,
+  Database,
+  ExternalLink
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { Header } from '../components/Header';
+import { isSupabaseConfigured } from '../services/supabase';
 
 export const Settings = () => {
   const { resetDemoData, transactions, accounts } = useFinance();
@@ -28,7 +31,7 @@ export const Settings = () => {
     <div className="max-w-3xl space-y-6">
       <Header
         title="Preferences & Settings"
-        subtitle="Manage prototype settings, currency formatting, and demo state"
+        subtitle="Manage database connectivity, localization, and demo data state"
       />
 
       {resetDone && (
@@ -37,6 +40,51 @@ export const Settings = () => {
           <span>Demo financial state restored to initial default sample data.</span>
         </div>
       )}
+
+      {/* Supabase Connection Status Card */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Supabase Cloud Database</h3>
+              <p className="text-xs text-slate-500 mt-0.5">PostgreSQL backend for cloud synchronization</p>
+            </div>
+          </div>
+
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+              isSupabaseConfigured
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isSupabaseConfigured ? 'bg-emerald-500' : 'bg-amber-500'
+              }`}
+            ></span>
+            {isSupabaseConfigured ? 'Connected' : 'Credentials Needed'}
+          </span>
+        </div>
+
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-2">
+          <p>
+            {isSupabaseConfigured
+              ? 'Your project is connected to Supabase cloud database.'
+              : 'Add your Supabase Project URL and Anon Key in `.env` to enable full cloud database persistence.'}
+          </p>
+          <div className="font-mono text-[11px] bg-slate-100 p-2.5 rounded-lg border border-slate-200 space-y-1 text-slate-800">
+            <div>VITE_SUPABASE_URL=https://&lt;project-ref&gt;.supabase.co</div>
+            <div>VITE_SUPABASE_ANON_KEY=&lt;your-anon-public-key&gt;</div>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            SQL schema file ready at <code className="text-emerald-700 font-semibold">supabase-schema.sql</code>.
+          </p>
+        </div>
+      </div>
 
       {/* General Configuration */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
@@ -71,21 +119,6 @@ export const Settings = () => {
           </div>
           <div className="text-xs text-slate-600 font-medium">
             UPI, Debit/Credit Cards, Net Banking, Cash
-          </div>
-        </div>
-      </div>
-
-      {/* Phase 1 Notice & Storage Information */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Architecture & Persistence Notice</h3>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              SpendWise is currently running in <strong>Phase 1 (Frontend Demonstration & State Prototype)</strong>.
-              All created transactions, accounts, and budgets are kept in browser local storage and local demo memory.
-              Permanent server-side relational database persistence and cloud synchronization are scheduled for Phase 2.
-            </p>
           </div>
         </div>
       </div>
