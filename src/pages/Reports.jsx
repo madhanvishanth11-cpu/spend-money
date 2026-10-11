@@ -13,19 +13,19 @@ import {
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatINR } from '../utils/formatters';
-import { MONTHLY_TREND } from '../services/mockData';
 import { Header } from '../components/Header';
 
 export const Reports = () => {
-  const { transactions, totalIncome, totalExpenses, netSavings } = useFinance();
+  const { transactions, categories, totalIncome, totalExpenses, netSavings } = useFinance();
 
-  // Category-wise expense breakdown
+  // Category-wise expense breakdown (excluding transfers)
   const categoryExpenses = useMemo(() => {
     const map = {};
     transactions
       .filter((t) => t.type === 'expense')
       .forEach((t) => {
-        map[t.category] = (map[t.category] || 0) + Number(t.amount);
+        const catName = t.category?.name || categories.find((c) => c.id === t.category_id)?.name || 'Uncategorized';
+        map[catName] = (map[catName] || 0) + Number(t.amount || 0);
       });
 
     return Object.entries(map)
@@ -35,7 +35,7 @@ export const Reports = () => {
         percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [transactions, totalExpenses]);
+  }, [transactions, categories, totalExpenses]);
 
   // Payment method breakdown
   const paymentMethodExpenses = useMemo(() => {
@@ -43,7 +43,8 @@ export const Reports = () => {
     transactions
       .filter((t) => t.type === 'expense')
       .forEach((t) => {
-        map[t.paymentMethod] = (map[t.paymentMethod] || 0) + Number(t.amount);
+        const method = (t.payment_method || 'other').toLowerCase();
+        map[method] = (map[method] || 0) + Number(t.amount || 0);
       });
 
     return Object.entries(map).map(([method, amount]) => ({
@@ -69,29 +70,29 @@ export const Reports = () => {
     <div className="space-y-6">
       <Header
         title="Financial Reports & Analytics"
-        subtitle="Detailed spending habits, category breakdowns, and monthly distribution"
+        subtitle="Calculated spending habits and category breakdowns from your database"
       />
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Total Inflow Analyzed
+            Total Inflow Recorded
           </span>
           <div className="text-2xl font-bold text-emerald-700 mt-2">
             {formatINR(totalIncome)}
           </div>
-          <p className="text-xs text-slate-400 mt-1">From all income channels</p>
+          <p className="text-xs text-slate-400 mt-1">Across all income deposits</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Total Outflow Analyzed
+            Total Outflow Recorded
           </span>
           <div className="text-2xl font-bold text-slate-900 mt-2">
             {formatINR(totalExpenses)}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Across all spend categories</p>
+          <p className="text-xs text-slate-400 mt-1">Across all debit expenditures</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -122,7 +123,7 @@ export const Reports = () => {
           </div>
 
           {categoryExpenses.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No expenses logged yet.</p>
+            <p className="text-sm text-slate-400 text-center py-8">No expenses logged yet in database.</p>
           ) : (
             <div className="space-y-4">
               {categoryExpenses.map((cat, idx) => (
@@ -158,42 +159,47 @@ export const Reports = () => {
               </div>
             </div>
 
-            <div className="space-y-3">
-              {paymentMethodExpenses.map((pm) => {
-                const getLabel = (m) => {
-                  if (m === 'upi') return { name: 'UPI (GPay / PhonePe / Paytm)', icon: Smartphone };
-                  if (m === 'card') return { name: 'Debit & Credit Cards', icon: CreditCard };
-                  if (m === 'bank-transfer') return { name: 'Net Banking / IMPS', icon: Building2 };
-                  return { name: 'Physical Cash', icon: Banknote };
-                };
-                const info = getLabel(pm.method);
-                const Icon = info.icon;
+            {paymentMethodExpenses.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">No transactions recorded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {paymentMethodExpenses.map((pm) => {
+                  const getLabel = (m) => {
+                    if (m === 'upi') return { name: 'UPI (GPay / PhonePe / Paytm)', icon: Smartphone };
+                    if (m === 'card') return { name: 'Debit & Credit Cards', icon: CreditCard };
+                    if (m === 'bank transfer' || m === 'bank-transfer') return { name: 'Net Banking / IMPS', icon: Building2 };
+                    if (m === 'cash') return { name: 'Physical Cash', icon: Banknote };
+                    return { name: 'Other Methods', icon: Building2 };
+                  };
+                  const info = getLabel(pm.method);
+                  const Icon = info.icon;
 
-                return (
-                  <div
-                    key={pm.method}
-                    className="p-3.5 rounded-xl border border-slate-200/60 bg-slate-50/50 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                        <Icon className="w-4 h-4" />
+                  return (
+                    <div
+                      key={pm.method}
+                      className="p-3.5 rounded-xl border border-slate-200/60 bg-slate-50/50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-900">{info.name}</p>
+                          <p className="text-[11px] text-slate-400">{pm.percentage}% of total expenses</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-900">{info.name}</p>
-                        <p className="text-[11px] text-slate-400">{pm.percentage}% of total expenses</p>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">{formatINR(pm.amount)}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-slate-900">{formatINR(pm.amount)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500 leading-relaxed">
-            💡 UPI and direct bank transfers represent your highest volume payment instruments this cycle.
+            💡 Calculated directly from user-isolated database records in Supabase.
           </div>
         </div>
       </div>

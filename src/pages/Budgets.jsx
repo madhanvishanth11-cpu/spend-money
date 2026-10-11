@@ -11,47 +11,64 @@ import {
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatINR } from '../utils/formatters';
-import { EXPENSE_CATEGORIES } from '../services/mockData';
 import { Header } from '../components/Header';
 
 export const Budgets = () => {
-  const { budgets, transactions, saveBudget, deleteBudget } = useFinance();
+  const { budgets, categories, transactions, saveBudget, deleteBudget } = useFinance();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
-  const [allocated, setAllocated] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [amountLimit, setAmountLimit] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Calculate actual spending per budget category
+  const expenseCategories = categories.filter((c) => c.transaction_type === 'expense');
+
+  // Compute actual spending in current month for each budget
+  const currentMonthStart = new Date().toISOString().slice(0, 7) + '-01';
+
   const budgetStatusList = budgets.map((b) => {
+    const catId = b.category_id;
     const spent = transactions
-      .filter((t) => t.type === 'expense' && t.category === b.category)
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .filter((t) => {
+        const matchesCategory = catId ? t.category_id === catId : true;
+        const matchesType = t.type === 'expense';
+        const inCurrentMonth = (t.transaction_date || '').startsWith(currentMonthStart.slice(0, 7));
+        return matchesCategory && matchesType && inCurrentMonth;
+      })
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    const percentage = b.allocated > 0 ? Math.round((spent / b.allocated) * 100) : 0;
-    const remaining = b.allocated - spent;
+    const limit = Number(b.amount_limit || 0);
+    const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+    const remaining = limit - spent;
+
+    const categoryObj = categories.find((c) => c.id === catId) || b.category;
 
     return {
       ...b,
+      categoryName: categoryObj ? categoryObj.name : 'Overall Monthly Budget',
       spent,
+      limit,
       percentage,
       remaining,
-      isOver: remaining < 0
+      isOver: remaining < 0,
     };
   });
 
-  const totalAllocated = budgets.reduce((sum, b) => sum + Number(b.allocated), 0);
+  const totalAllocated = budgets.reduce((sum, b) => sum + Number(b.amount_limit || 0), 0);
   const totalSpentInBudgets = budgetStatusList.reduce((sum, b) => sum + b.spent, 0);
 
   const openModal = (budget = null) => {
+    setErrorMsg('');
     if (budget) {
       setEditingBudget(budget);
-      setCategory(budget.category);
-      setAllocated(String(budget.allocated));
+      setCategoryId(budget.category_id || '');
+      setAmountLimit(String(budget.amount_limit));
     } else {
       setEditingBudget(null);
-      setCategory(EXPENSE_CATEGORIES[0]);
-      setAllocated('');
+      setCategoryId(expenseCategories[0]?.id || '');
+      setAmountLimit('');
     }
     setIsModalOpen(true);
   };
@@ -61,25 +78,46 @@ export const Budgets = () => {
     setEditingBudget(null);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!allocated || Number(allocated) <= 0) return;
+    if (!amountLimit || Number(amountLimit) <= 0) {
+      setErrorMsg('Please specify a positive budget limit.');
+      return;
+    }
 
-    saveBudget({
-      ...(editingBudget ? { id: editingBudget.id } : {}),
-      category,
-      allocated: parseFloat(allocated),
-      period: 'monthly'
-    });
+    setSaving(true);
+    setErrorMsg('');
 
-    closeModal();
+    try {
+      await saveBudget({
+        ...(editingBudget ? { id: editingBudget.id } : {}),
+        category_id: categoryId || null,
+        amount_limit: parseFloat(amountLimit),
+        month_start: currentMonthStart,
+      });
+      closeModal();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to save budget');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Delete this budget limit?')) {
+      try {
+        await deleteBudget(id);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
   };
 
   return (
     <div className="space-y-6">
       <Header
         title="Monthly Budgets & Limits"
-        subtitle="Set spending ceilings per category to stay financially disciplined"
+        subtitle="Set spending ceilings per category backed by Supabase database"
       />
 
       {/* Aggregate Budget Bar */}
@@ -87,7 +125,7 @@ export const Budgets = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Total Budget Utilization
+              Total Budget Utilization (This Month)
             </span>
             <div className="text-2xl font-bold text-slate-900 mt-1">
               {formatINR(totalSpentInBudgets)}{' '}
@@ -113,7 +151,7 @@ export const Budgets = () => {
               className={`h-full rounded-full transition-all duration-500 ${
                 totalSpentInBudgets > totalAllocated
                   ? 'bg-rose-500'
-                  : totalSpentInBudgets / totalAllocated > 0.8
+                  : totalSpentInBudgets / (totalAllocated || 1) > 0.8
                   ? 'bg-amber-500'
                   : 'bg-emerald-600'
               }`}
@@ -127,7 +165,9 @@ export const Budgets = () => {
           </div>
           <div className="flex justify-between text-xs text-slate-400">
             <span>
-              {Math.round((totalSpentInBudgets / (totalAllocated || 1)) * 100)}% utilized
+              {totalAllocated > 0
+                ? `${Math.round((totalSpentInBudgets / totalAllocated) * 100)}% utilized`
+                : 'No budgets defined'}
             </span>
             <span>
               {totalAllocated - totalSpentInBudgets >= 0
@@ -139,86 +179,106 @@ export const Budgets = () => {
       </div>
 
       {/* Category Budgets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {budgetStatusList.map((b) => {
-          const isWarning = b.percentage >= 80 && !b.isOver;
-          const isOver = b.isOver;
+      {budgetStatusList.length === 0 ? (
+        <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80 shadow-xs">
+          <Target className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-800">No active budgets yet</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            Set monthly spending limits on Groceries, Dining Out, or Shopping to prevent overspending.
+          </p>
+          <button
+            onClick={() => openModal()}
+            className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            Create First Budget
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {budgetStatusList.map((b) => {
+            const isWarning = b.percentage >= 80 && !b.isOver;
+            const isOver = b.isOver;
 
-          return (
-            <div
-              key={b.id}
-              className={`bg-white p-5 rounded-2xl border shadow-xs flex flex-col justify-between transition-all ${
-                isOver
-                  ? 'border-rose-200 ring-1 ring-rose-200'
-                  : 'border-slate-200/80 hover:border-slate-300'
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <span className="font-bold text-slate-900 text-sm">
-                    {b.category}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => openModal(b)}
-                      className="p-1 text-slate-400 hover:text-emerald-700 rounded transition-colors"
-                      title="Edit budget"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteBudget(b.id)}
-                      className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                      title="Delete budget"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+            return (
+              <div
+                key={b.id}
+                className={`bg-white p-5 rounded-2xl border shadow-xs flex flex-col justify-between transition-all ${
+                  isOver
+                    ? 'border-rose-200 ring-1 ring-rose-200'
+                    : 'border-slate-200/80 hover:border-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {b.categoryName}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openModal(b)}
+                        className="p-1 text-slate-400 hover:text-emerald-700 rounded transition-colors"
+                        title="Edit budget"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(b.id)}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                        title="Delete budget"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between text-xs mb-1.5">
+                      <span className="text-slate-500">
+                        Spent: <strong className="text-slate-900">{formatINR(b.spent)}</strong>
+                      </span>
+                      <span className="text-slate-500">
+                        Limit: <strong className="text-slate-900">{formatINR(b.limit)}</strong>
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isOver
+                            ? 'bg-rose-500'
+                            : isWarning
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-600'
+                        }`}
+                        style={{ width: `${Math.min(b.percentage, 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  <div className="flex items-baseline justify-between text-xs mb-1.5">
-                    <span className="text-slate-500">Spent: <strong className="text-slate-900">{formatINR(b.spent)}</strong></span>
-                    <span className="text-slate-500">Limit: <strong className="text-slate-900">{formatINR(b.allocated)}</strong></span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isOver
-                          ? 'bg-rose-500'
-                          : isWarning
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-600'
-                      }`}
-                      style={{ width: `${Math.min(b.percentage, 100)}%` }}
-                    ></div>
-                  </div>
+                {/* Status Badge */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  {isOver ? (
+                    <span className="inline-flex items-center gap-1 text-rose-600 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Exceeded by {formatINR(Math.abs(b.remaining))}
+                    </span>
+                  ) : isWarning ? (
+                    <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
+                      <AlertCircle className="w-3.5 h-3.5" /> {b.percentage}% (Nearing limit)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {formatINR(b.remaining)} left
+                    </span>
+                  )}
+                  <span className="text-slate-400 font-medium">{b.percentage}%</span>
                 </div>
               </div>
-
-              {/* Status Badge */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                {isOver ? (
-                  <span className="inline-flex items-center gap-1 text-rose-600 font-semibold">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Exceeded by {formatINR(Math.abs(b.remaining))}
-                  </span>
-                ) : isWarning ? (
-                  <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
-                    <AlertCircle className="w-3.5 h-3.5" /> {b.percentage}% (Nearing limit)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {formatINR(b.remaining)} left
-                  </span>
-                )}
-                <span className="text-slate-400 font-medium">{b.percentage}%</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -231,19 +291,27 @@ export const Budgets = () => {
               Allocate a monthly spending ceiling
             </p>
 
+            {errorMsg && (
+              <div className="p-3 mb-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   Expense Category
                 </label>
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-600"
                 >
-                  {EXPENSE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  <option value="">-- Overall Monthly Budget (All categories) --</option>
+                  {expenseCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
                 </select>
@@ -262,8 +330,8 @@ export const Budgets = () => {
                     step="any"
                     min="1"
                     required
-                    value={allocated}
-                    onChange={(e) => setAllocated(e.target.value)}
+                    value={amountLimit}
+                    onChange={(e) => setAmountLimit(e.target.value)}
                     placeholder="10000"
                     className="w-full pl-8 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-600"
                   />
@@ -273,6 +341,7 @@ export const Budgets = () => {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={closeModal}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
                 >
@@ -280,9 +349,10 @@ export const Budgets = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs"
+                  disabled={saving}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs"
                 >
-                  Save Budget
+                  {saving ? 'Saving...' : 'Save Budget'}
                 </button>
               </div>
             </form>

@@ -7,11 +7,12 @@ import {
   BarChart3,
   Target,
   Settings,
-  ShieldCheck,
   TrendingUp,
-  Sparkles
+  LogOut,
+  User
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
 
 export const Sidebar = () => {
   const { activeScreen, setActiveScreen, setEditingTransaction } = useFinance();
+  const { user, signOut } = useAuth();
 
   const handleNav = (id) => {
     if (id === 'add-transaction') {
@@ -32,6 +34,8 @@ export const Sidebar = () => {
     }
     setActiveScreen(id);
   };
+
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200/80 p-5 shrink-0 select-none min-h-screen">
@@ -44,7 +48,7 @@ export const Sidebar = () => {
           <span className="font-bold text-lg tracking-tight text-slate-900 flex items-center gap-1.5">
             SpendWise
             <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-              Phase 1
+              Cloud
             </span>
           </span>
           <p className="text-xs text-slate-500 font-medium">Personal Finance</p>
@@ -77,16 +81,25 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* Footer Info Box */}
-      <div className="mt-auto pt-4 border-t border-slate-100">
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-start gap-2.5">
-          <Sparkles className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs font-medium text-slate-700">Prototype Demo</p>
-            <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-              INR Local Mode. All sample transactions are editable.
-            </p>
+      {/* User Session Footer & Logout */}
+      <div className="mt-auto pt-4 border-t border-slate-100 space-y-3">
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold text-xs uppercase">
+              {displayName.slice(0, 1)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-900 truncate">{displayName}</p>
+              <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
+            </div>
           </div>
+          <button
+            onClick={signOut}
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

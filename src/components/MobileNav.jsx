@@ -5,12 +5,14 @@ import {
   PlusCircle,
   Wallet,
   BarChart3,
-  Target
+  LogOut
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
+import { useAuth } from '../context/AuthContext';
 
 export const MobileNav = () => {
   const { activeScreen, setActiveScreen, setEditingTransaction } = useFinance();
+  const { signOut } = useAuth();
 
   const handleNav = (screen) => {
     if (screen === 'add-transaction') {

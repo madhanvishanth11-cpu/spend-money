@@ -1,199 +1,200 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  INITIAL_ACCOUNTS,
-  INITIAL_TRANSACTIONS,
-  INITIAL_BUDGETS
-} from '../services/mockData';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from './AuthContext';
+import * as db from '../services/db';
 
 const FinanceContext = createContext(null);
 
-const STORAGE_KEY = 'spendwise_demo_state_v1';
-
 export const FinanceProvider = ({ children }) => {
-  const [accounts, setAccounts] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_accounts`);
-      return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
-    } catch {
-      return INITIAL_ACCOUNTS;
-    }
-  });
+  const { user, isSupabaseConfigured } = useAuth();
 
-  const [transactions, setTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`);
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-    } catch {
-      return INITIAL_TRANSACTIONS;
-    }
-  });
+  const [accounts, setAccounts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [profile, setProfile] = useState(null);
 
-  const [budgets, setBudgets] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_budgets`);
-      return saved ? JSON.parse(saved) : INITIAL_BUDGETS;
-    } catch {
-      return INITIAL_BUDGETS;
-    }
-  });
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  // Sync state to local storage for realistic demo experience
-  useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_accounts`, JSON.stringify(accounts));
-    } catch {
-      // ignore in demo
+  // Fetch all user data whenever user logs in
+  const fetchData = useCallback(async () => {
+    if (!user) {
+      setAccounts([]);
+      setCategories([]);
+      setTransactions([]);
+      setBudgets([]);
+      setProfile(null);
+      setLoading(false);
+      return;
     }
-  }, [accounts]);
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [fetchedProfile, fetchedAccounts, fetchedCategories, fetchedTransactions, fetchedBudgets] =
+        await Promise.all([
+          db.getProfile(user.id),
+          db.getAccounts(),
+          db.getCategories(),
+          db.getTransactions(),
+          db.getBudgets(),
+        ]);
+
+      setProfile(fetchedProfile);
+      setAccounts(fetchedAccounts);
+      setCategories(fetchedCategories);
+      setTransactions(fetchedTransactions);
+      setBudgets(fetchedBudgets);
+    } catch (err) {
+      console.error('Error fetching Supabase data:', err);
+      setError(err.message || 'Failed to load financial records');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
-    } catch {
-      // ignore in demo
-    }
+    fetchData();
+  }, [fetchData]);
+
+  // Derived Account Balances:
+  // Each account balance = opening_balance + sum(inflows) - sum(outflows)
+  // Transfers:
+  // - Outgoing transfer from account decreases balance
+  // - Incoming transfer to account increases balance
+  const computedAccounts = useMemo(() => {
+    return accounts.map((acc) => {
+      const opening = Number(acc.opening_balance || 0);
+
+      const accTransactions = transactions.filter((t) => t.account_id === acc.id);
+
+      const netDelta = accTransactions.reduce((sum, tx) => {
+        const amt = Number(tx.amount || 0);
+        if (tx.type === 'income') {
+          return sum + amt;
+        } else if (tx.type === 'expense') {
+          return sum - amt;
+        } else if (tx.type === 'transfer') {
+          // If transfer description mentions 'Transfer from', it was credited to this account
+          // If it mentions 'Transfer to', it was debited from this account
+          const isIncoming = tx.description?.toLowerCase().includes('from');
+          return isIncoming ? sum + amt : sum - amt;
+        }
+        return sum;
+      }, 0);
+
+      return {
+        ...acc,
+        balance: opening + netDelta,
+      };
+    });
+  }, [accounts, transactions]);
+
+  // Aggregated Net Financial Metrics
+  // Excludes transfers from overall income/expense totals to prevent double-counting
+  const totalBalance = useMemo(() => {
+    return computedAccounts.reduce((sum, a) => sum + a.balance, 0);
+  }, [computedAccounts]);
+
+  const totalIncome = useMemo(() => {
+    return transactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }, [transactions]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_budgets`, JSON.stringify(budgets));
-    } catch {
-      // ignore in demo
-    }
-  }, [budgets]);
-
-  // Financial calculations
-  const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
-
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-  const totalExpenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalExpenses = useMemo(() => {
+    return transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  }, [transactions]);
 
   const netSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? Math.round((netSavings / totalIncome) * 100) : 0;
 
-  // Add transaction
-  const addTransaction = (txData) => {
-    const newTx = {
-      ...txData,
-      id: `tx-${Date.now()}`,
-      amount: Number(txData.amount)
-    };
+  // Monthly Cashflow Trend based on real database records
+  const monthlyTrend = useMemo(() => {
+    const monthMap = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    setTransactions(prev => [newTx, ...prev]);
+    // Initialize last 6 months
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${months[d.getMonth()]}${i === 0 ? ' (Current)' : ''}`;
+      monthMap[key] = { month: label, income: 0, expenses: 0 };
+    }
 
-    // Update account balance
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === txData.accountId) {
-        const delta = txData.type === 'income' ? newTx.amount : -newTx.amount;
-        return { ...acc, balance: acc.balance + delta };
+    transactions.forEach((tx) => {
+      const ym = (tx.transaction_date || '').slice(0, 7);
+      if (monthMap[ym]) {
+        if (tx.type === 'income') {
+          monthMap[ym].income += Number(tx.amount || 0);
+        } else if (tx.type === 'expense') {
+          monthMap[ym].expenses += Number(tx.amount || 0);
+        }
       }
-      return acc;
-    }));
+    });
+
+    return Object.values(monthMap);
+  }, [transactions]);
+
+  // Data Actions
+  const addTransaction = async (txData) => {
+    const created = await db.createTransaction(txData);
+    await fetchData();
+    return created;
   };
 
-  // Update transaction
-  const updateTransaction = (updatedTx) => {
-    const existing = transactions.find(t => t.id === updatedTx.id);
-    if (!existing) return;
-
-    const oldAmount = Number(existing.amount);
-    const newAmount = Number(updatedTx.amount);
-
-    setTransactions(prev => prev.map(t => (t.id === updatedTx.id ? { ...updatedTx, amount: newAmount } : t)));
-
-    // Revert old impact and apply new impact to accounts
-    setAccounts(prev => prev.map(acc => {
-      let balance = acc.balance;
-      // Revert old
-      if (acc.id === existing.accountId) {
-        balance += (existing.type === 'income' ? -oldAmount : oldAmount);
-      }
-      // Apply new
-      if (acc.id === updatedTx.accountId) {
-        balance += (updatedTx.type === 'income' ? newAmount : -newAmount);
-      }
-      return { ...acc, balance };
-    }));
+  const updateTransaction = async (id, txData) => {
+    const updated = await db.updateTransaction(id, txData);
+    await fetchData();
+    return updated;
   };
 
-  // Delete transaction
-  const deleteTransaction = (id) => {
-    const tx = transactions.find(t => t.id === id);
-    if (!tx) return;
-
-    setTransactions(prev => prev.filter(t => t.id !== id));
-
-    // Revert account impact
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === tx.accountId) {
-        const amount = Number(tx.amount);
-        const delta = tx.type === 'income' ? -amount : amount;
-        return { ...acc, balance: acc.balance + delta };
-      }
-      return acc;
-    }));
+  const deleteTransaction = async (id, transferGroupId = null) => {
+    await db.deleteTransaction(id, transferGroupId);
+    await fetchData();
   };
 
-  // Add / Edit Account
-  const saveAccount = (accountData) => {
+  const saveAccount = async (accountData) => {
     if (accountData.id) {
-      setAccounts(prev => prev.map(a => a.id === accountData.id ? { ...a, ...accountData, balance: Number(accountData.balance) } : a));
+      await db.updateAccount(accountData.id, accountData);
     } else {
-      const newAcc = {
-        ...accountData,
-        id: `acc-${Date.now()}`,
-        balance: Number(accountData.balance || 0)
-      };
-      setAccounts(prev => [...prev, newAcc]);
+      await db.createAccount(accountData);
     }
+    await fetchData();
   };
 
-  const deleteAccount = (id) => {
-    setAccounts(prev => prev.filter(a => a.id !== id));
+  const deleteAccount = async (id) => {
+    await db.deleteAccount(id);
+    await fetchData();
   };
 
-  // Save Budget
-  const saveBudget = (budgetData) => {
-    if (budgetData.id) {
-      setBudgets(prev => prev.map(b => b.id === budgetData.id ? { ...b, allocated: Number(budgetData.allocated) } : b));
-    } else {
-      const newB = {
-        ...budgetData,
-        id: `b-${Date.now()}`,
-        allocated: Number(budgetData.allocated)
-      };
-      setBudgets(prev => [...prev, newB]);
-    }
+  const saveBudget = async (budgetData) => {
+    await db.saveBudget(budgetData);
+    await fetchData();
   };
 
-  const deleteBudget = (id) => {
-    setBudgets(prev => prev.filter(b => b.id !== id));
-  };
-
-  // Reset to initial demo data
-  const resetDemoData = () => {
-    setAccounts(INITIAL_ACCOUNTS);
-    setTransactions(INITIAL_TRANSACTIONS);
-    setBudgets(INITIAL_BUDGETS);
-    localStorage.removeItem(`${STORAGE_KEY}_accounts`);
-    localStorage.removeItem(`${STORAGE_KEY}_transactions`);
-    localStorage.removeItem(`${STORAGE_KEY}_budgets`);
+  const deleteBudget = async (id) => {
+    await db.deleteBudget(id);
+    await fetchData();
   };
 
   return (
     <FinanceContext.Provider
       value={{
-        accounts,
+        accounts: computedAccounts,
+        rawAccounts: accounts,
+        categories,
         transactions,
         budgets,
+        profile,
+        loading,
+        error,
         activeScreen,
         setActiveScreen,
         editingTransaction,
@@ -203,6 +204,7 @@ export const FinanceProvider = ({ children }) => {
         totalExpenses,
         netSavings,
         savingsRate,
+        monthlyTrend,
         addTransaction,
         updateTransaction,
         deleteTransaction,
@@ -210,7 +212,7 @@ export const FinanceProvider = ({ children }) => {
         deleteAccount,
         saveBudget,
         deleteBudget,
-        resetDemoData
+        refreshData: fetchData,
       }}
     >
       {children}

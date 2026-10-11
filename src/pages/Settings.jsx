@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   RotateCcw,
-  ShieldAlert,
+  ShieldCheck,
   Sliders,
   Bell,
   Smartphone,
@@ -9,37 +9,63 @@ import {
   Info,
   Check,
   Database,
-  ExternalLink
+  ExternalLink,
+  User,
+  LogOut
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
+import { useAuth } from '../context/AuthContext';
 import { Header } from '../components/Header';
 import { isSupabaseConfigured } from '../services/supabase';
 
 export const Settings = () => {
-  const { resetDemoData, transactions, accounts } = useFinance();
-  const [resetDone, setResetDone] = useState(false);
+  const { transactions, accounts, profile, refreshData } = useFinance();
+  const { user, signOut } = useAuth();
+  const [syncDone, setSyncDone] = useState(false);
 
-  const handleReset = () => {
-    if (window.confirm('Reset all transactions and accounts to default sample demo state?')) {
-      resetDemoData();
-      setResetDone(true);
-      setTimeout(() => setResetDone(false), 2500);
-    }
+  const handleRefresh = async () => {
+    await refreshData();
+    setSyncDone(true);
+    setTimeout(() => setSyncDone(false), 2000);
   };
 
   return (
     <div className="max-w-3xl space-y-6">
       <Header
         title="Preferences & Settings"
-        subtitle="Manage database connectivity, localization, and demo data state"
+        subtitle="Manage cloud database sync, user profile, and localization"
       />
 
-      {resetDone && (
+      {syncDone && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 text-sm font-medium animate-fadeIn">
           <Check className="w-5 h-5 text-emerald-600" />
-          <span>Demo financial state restored to initial default sample data.</span>
+          <span>Financial records synced with Supabase cloud.</span>
         </div>
       )}
+
+      {/* User Account Info */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+          <User className="w-4 h-4 text-emerald-700" />
+          <span>User Profile</span>
+        </h3>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              {profile?.display_name || user?.user_metadata?.display_name || 'Authenticated User'}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">{user?.email}</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="self-start sm:self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
 
       {/* Supabase Connection Status Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
@@ -50,7 +76,7 @@ export const Settings = () => {
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Supabase Cloud Database</h3>
-              <p className="text-xs text-slate-500 mt-0.5">PostgreSQL backend for cloud synchronization</p>
+              <p className="text-xs text-slate-500 mt-0.5">PostgreSQL backend with Row Level Security (RLS)</p>
             </div>
           </div>
 
@@ -72,17 +98,18 @@ export const Settings = () => {
 
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-2">
           <p>
-            {isSupabaseConfigured
-              ? 'Your project is connected to Supabase cloud database.'
-              : 'Add your Supabase Project URL and Anon Key in `.env` to enable full cloud database persistence.'}
+            Row Level Security is active. Your records ({transactions.length} transactions, {accounts.length} accounts)
+            are securely isolated to your authenticated user ID.
           </p>
-          <div className="font-mono text-[11px] bg-slate-100 p-2.5 rounded-lg border border-slate-200 space-y-1 text-slate-800">
-            <div>VITE_SUPABASE_URL=https://&lt;project-ref&gt;.supabase.co</div>
-            <div>VITE_SUPABASE_ANON_KEY=&lt;your-anon-public-key&gt;</div>
+          <div className="pt-2">
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition-colors shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Force Sync / Refresh</span>
+            </button>
           </div>
-          <p className="text-[11px] text-slate-500">
-            SQL schema file ready at <code className="text-emerald-700 font-semibold">supabase-schema.sql</code>.
-          </p>
         </div>
       </div>
 
@@ -114,36 +141,12 @@ export const Settings = () => {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Payment Rails</p>
+            <p className="text-sm font-semibold text-slate-900">Supported Rails</p>
             <p className="text-xs text-slate-500 mt-0.5">Active payment instruments</p>
           </div>
           <div className="text-xs text-slate-600 font-medium">
-            UPI, Debit/Credit Cards, Net Banking, Cash
+            Cash, UPI, Debit / Credit Cards, Net Banking / IMPS
           </div>
-        </div>
-      </div>
-
-      {/* Demo State Reset */}
-      <div className="bg-white p-6 rounded-2xl border border-rose-100 shadow-xs space-y-4">
-        <div className="flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-slate-900">Reset Demo Data</h3>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Discard all newly added custom transactions and restore initial sample entries
-              ({transactions.length} transactions, {accounts.length} accounts currently in memory).
-            </p>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-colors active:scale-[0.98]"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset Demo to Sample Data</span>
-          </button>
         </div>
       </div>
     </div>
