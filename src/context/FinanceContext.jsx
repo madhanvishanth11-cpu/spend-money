@@ -78,9 +78,8 @@ export const FinanceProvider = ({ children }) => {
         } else if (tx.type === 'expense') {
           return sum - amt;
         } else if (tx.type === 'transfer') {
-          // If transfer description mentions 'Transfer from', it was credited to this account
-          // If it mentions 'Transfer to', it was debited from this account
-          const isIncoming = tx.description?.toLowerCase().includes('from');
+          // Explicit transfer_side: incoming credits the account, outgoing debits
+          const isIncoming = tx.transfer_side === 'incoming' || tx.description?.toLowerCase().includes('from');
           return isIncoming ? sum + amt : sum - amt;
         }
         return sum;
