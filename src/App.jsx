@@ -11,6 +11,7 @@ import { Accounts } from './pages/Accounts';
 import { Reports } from './pages/Reports';
 import { Budgets } from './pages/Budgets';
 import { Settings } from './pages/Settings';
+import { InstallPrompt } from './components/InstallPrompt';
 
 const MainContent = () => {
   const { activeScreen, loading } = useFinance();
@@ -86,6 +87,7 @@ export function App() {
   return (
     <AuthProvider>
       <ProtectedRoot />
+      <InstallPrompt />
     </AuthProvider>
   );
 }

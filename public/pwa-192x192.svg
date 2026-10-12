@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#047857" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+
+  <!-- Inner subtle border -->
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.15" />
+
+  <!-- White Minimal Trending Graphic & Rupee Symbol -->
+  <g filter="url(#shadow)">
+    <!-- Upward Trend Line with Arrow -->
+    <path d="M120 372 L230 262 L300 332 L402 210" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M336 210 L402 210 L402 276" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- Indian Rupee Coin Circle at Top-Right/Center -->
+    <circle cx="210" cy="180" r="48" fill="#10b981" stroke="#ffffff" stroke-width="8" />
+    <!-- Rupee symbol in circle -->
+    <path d="M194 162 L226 162 M194 172 L226 172 M194 162 L206 162 C216 162 222 168 222 176 C222 184 216 190 206 190 L194 190 L224 204" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
