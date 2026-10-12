@@ -270,8 +270,21 @@ export const Dashboard = () => {
 
         <div className="divide-y divide-slate-100 overflow-x-auto">
           {recentTransactions.length === 0 ? (
-            <div className="text-center py-8 text-sm text-slate-500">
-              No transactions recorded yet in your personal database.
+            <div className="text-center py-12 px-4">
+              <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-800">No transactions recorded yet</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Your database ledger is completely empty. Start logging your income or expenses.
+              </p>
+              <button
+                onClick={() => {
+                  setEditingTransaction(null);
+                  setActiveScreen('add-transaction');
+                }}
+                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              >
+                + Add First Transaction
+              </button>
             </div>
           ) : (
             recentTransactions.map((tx) => {

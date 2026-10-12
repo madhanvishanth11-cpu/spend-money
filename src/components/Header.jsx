@@ -13,9 +13,9 @@ export const Header = ({ title, subtitle }) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center text-xs font-medium text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200/60">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
-          Demo Environment (INR)
+        <div className="hidden sm:flex items-center text-xs font-medium text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/80">
+          <span className="w-2 h-2 rounded-full bg-emerald-600 mr-2 animate-pulse"></span>
+          Live Database (INR)
         </div>
 
         <button
