@@ -15,17 +15,30 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    // Check active session on mount
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) setAuthError(error.message);
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Safety timeout: ensure loading state never hangs indefinitely (e.g. if network or credentials fail)
+    const timeoutTimer = setTimeout(() => {
       setLoading(false);
-    });
+    }, 3000);
+
+    // Check active session on mount
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        clearTimeout(timeoutTimer);
+        if (error) setAuthError(error.message);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutTimer);
+        setAuthError(err.message);
+        setLoading(false);
+      });
 
     // Listen to auth state transitions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        clearTimeout(timeoutTimer);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -33,6 +46,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => {
+      clearTimeout(timeoutTimer);
       subscription?.unsubscribe();
     };
   }, []);
