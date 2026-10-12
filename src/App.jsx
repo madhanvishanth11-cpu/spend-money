@@ -12,6 +12,7 @@ import { Reports } from './pages/Reports';
 import { Budgets } from './pages/Budgets';
 import { Settings } from './pages/Settings';
 import { InstallPrompt } from './components/InstallPrompt';
+import { Logo } from './components/Logo';
 
 const MainContent = () => {
   const { activeScreen, loading } = useFinance();
@@ -42,6 +43,14 @@ const MainContent = () => {
       {/* Desktop Persistent Sidebar */}
       <Sidebar />
 
+      {/* Mobile Top Brand Navbar */}
+      <div className="md:hidden bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+        <Logo size="sm" />
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
+          Cloud
+        </span>
+      </div>
+
       {/* Main Dynamic Viewport */}
       <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full pb-24 md:pb-10">
         {loading ? (
@@ -65,9 +74,12 @@ const ProtectedRoot = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-        <div className="w-9 h-9 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-semibold text-slate-600">Connecting to SpendWise...</p>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4 animate-fadeIn">
+        <Logo size="lg" className="animate-pulse" />
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 border-2 border-slate-900 border-t-[#FF6A00] rounded-full animate-spin"></div>
+          <p className="text-xs font-semibold text-slate-600">Connecting to SpendWise...</p>
+        </div>
       </div>
     );
   }

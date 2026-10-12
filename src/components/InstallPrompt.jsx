@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -72,15 +73,15 @@ export const InstallPrompt = () => {
 
   return (
     <>
-      <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-96 z-50 bg-white border border-emerald-300 rounded-2xl p-4 shadow-2xl shadow-slate-900/15 flex items-center justify-between gap-3 animate-fadeIn">
+      <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-96 z-50 bg-white border border-slate-200 rounded-2xl p-4 shadow-2xl shadow-slate-900/15 flex items-center justify-between gap-3 animate-fadeIn">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Smartphone className="w-5 h-5" />
-          </div>
+          <Logo size="sm" showText={false} />
           <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-900 truncate">Install SpendWise App</p>
+            <p className="text-xs font-bold text-slate-900 truncate">
+              Install <span className="text-[#FF6A00]">SpendWise</span> App
+            </p>
             <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
-              Add to home screen for full-screen mobile app
+              Add to home screen for full-screen experience
             </p>
           </div>
         </div>
@@ -88,7 +89,7 @@ export const InstallPrompt = () => {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleInstallClick}
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
+            className="px-3.5 py-1.5 bg-[#FF6A00] hover:bg-[#e05d00] text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Install</span>
@@ -108,11 +109,11 @@ export const InstallPrompt = () => {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
-                  <Download className="w-4 h-4" />
-                </div>
-                <h3 className="font-bold text-slate-900 text-sm">Install SpendWise</h3>
+              <div className="flex items-center gap-2.5">
+                <Logo size="sm" showText={false} />
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Install <span className="text-[#FF6A00]">SpendWise</span>
+                </h3>
               </div>
               <button
                 onClick={() => setShowInstructions(false)}

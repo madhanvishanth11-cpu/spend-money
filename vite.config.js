@@ -9,13 +9,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'pwa-icon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'pwa-icon.svg', 'logo-mark.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'SpendWise - Personal Expense Tracker',
         short_name: 'SpendWise',
         description: 'Clean personal finance and expense dashboard with Indian Rupee (INR) formatting.',
-        theme_color: '#059669',
-        background_color: '#f8fafc',
+        theme_color: '#0F172A',
+        background_color: '#0F172A',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

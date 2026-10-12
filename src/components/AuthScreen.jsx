@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../services/supabase';
+import { Logo } from './Logo';
 
 export const AuthScreen = () => {
   const { signIn, signUp, resetPassword, authError, setAuthError } = useAuth();
@@ -89,15 +90,10 @@ export const AuthScreen = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 items-center justify-center text-white shadow-md shadow-emerald-600/20 mb-3">
-          <TrendingUp className="w-6 h-6 stroke-[2.5]" />
-        </div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-          SpendWise
-        </h2>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center flex flex-col items-center">
+        <Logo size="lg" className="justify-center mb-2" />
         <p className="mt-1 text-xs text-slate-500 font-medium">
-          Personal Finance & Wealth Tracker
+          Remember Where You Spend & Track Your Wealth
         </p>
       </div>
 

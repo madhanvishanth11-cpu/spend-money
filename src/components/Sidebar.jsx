@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
+import { Logo } from './Logo';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,19 +41,11 @@ export const Sidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200/80 p-5 shrink-0 select-none min-h-screen">
       {/* Brand Header */}
-      <div className="flex items-center gap-3 px-2 py-1 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white shadow-sm shadow-emerald-500/20">
-          <TrendingUp className="w-5 h-5 stroke-[2.5]" />
-        </div>
-        <div>
-          <span className="font-bold text-lg tracking-tight text-slate-900 flex items-center gap-1.5">
-            SpendWise
-            <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-              Cloud
-            </span>
-          </span>
-          <p className="text-xs text-slate-500 font-medium">Personal Finance</p>
-        </div>
+      <div className="px-2 py-1 mb-8">
+        <Logo size="md" />
+        <p className="text-[11px] text-slate-400 font-medium pl-13 -mt-1">
+          Remember & Track
+        </p>
       </div>
 
       {/* Navigation items */}

@@ -1,29 +1,77 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#047857" />
+    <!-- Background Gradient: Deep Slate / Dark Navy -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#047857" flood-opacity="0.3" />
+
+    <!-- Emerald banknote gradient -->
+    <linearGradient id="cashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Orange Bookmark & Trend Arrow Gradient (#FF6A00) -->
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A34" />
+      <stop offset="100%" stop-color="#FF6A00" />
+    </linearGradient>
+
+    <!-- Wallet Body Gradient -->
+    <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+
+    <!-- Shadow filter for depth -->
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3" />
     </filter>
   </defs>
 
-  <!-- Background rounded squircle -->
-  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+  <!-- Squircle Base for App Icon -->
+  <rect width="512" height="512" rx="124" fill="url(#bgGrad)" />
+  <rect x="6" y="6" width="500" height="500" rx="118" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="4" />
 
-  <!-- Inner subtle border -->
-  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.15" />
-
-  <!-- White Minimal Trending Graphic & Rupee Symbol -->
-  <g filter="url(#shadow)">
-    <!-- Upward Trend Line with Arrow -->
-    <path d="M120 372 L230 262 L300 332 L402 210" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M336 210 L402 210 L402 276" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Center Artwork Container -->
+  <g transform="translate(68, 64)" filter="url(#subtleShadow)">
     
-    <!-- Indian Rupee Coin Circle at Top-Right/Center -->
-    <circle cx="210" cy="180" r="48" fill="#10b981" stroke="#ffffff" stroke-width="8" />
-    <!-- Rupee symbol in circle -->
-    <path d="M194 162 L226 162 M194 172 L226 172 M194 162 L206 162 C216 162 222 168 222 176 C222 184 216 190 206 190 L194 190 L224 204" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- 1. Background Emerging Cash / Notes (Emerald Green) -->
+    <g transform="rotate(-6 188 120)">
+      <rect x="70" y="32" width="220" height="100" rx="18" fill="url(#cashGrad)" />
+      <!-- Subtle inner line on note -->
+      <rect x="78" y="40" width="204" height="84" rx="12" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="2.5" />
+      <circle cx="180" cy="82" r="14" fill="#FFFFFF" fill-opacity="0.25" />
+    </g>
+
+    <!-- 2. Main Wallet Body -->
+    <rect x="40" y="80" width="280" height="230" rx="36" fill="url(#walletGrad)" stroke="#334155" stroke-width="3" />
+
+    <!-- 3. Memory Bookmark Ribbon (representing remembering where money went) -->
+    <!-- Hangs from top-left of the wallet -->
+    <path d="M 66 70 L 112 70 L 112 170 L 89 150 L 66 170 Z" fill="url(#orangeGrad)" />
+    <!-- Small star or memory dot on ribbon -->
+    <circle cx="89" cy="104" r="5" fill="#FFFFFF" />
+
+    <!-- 4. Spending Bar Chart on Front of Wallet (White Bars) -->
+    <!-- Bar 1 -->
+    <rect x="136" y="210" width="26" height="66" rx="8" fill="#F8FAFC" />
+    <!-- Bar 2 -->
+    <rect x="174" y="174" width="26" height="102" rx="8" fill="#F8FAFC" />
+    <!-- Bar 3 -->
+    <rect x="212" y="140" width="26" height="136" rx="8" fill="#F8FAFC" />
+
+    <!-- 5. Dynamic Spending Growth Arrow (#FF6A00) -->
+    <path d="M 124 204 L 164 168 L 198 184 L 250 114" fill="none" stroke="url(#orangeGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Arrowhead -->
+    <path d="M 226 110 L 254 110 L 254 138" fill="none" stroke="url(#orangeGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- 6. Wallet Clasp / Flap (Right Side) -->
+    <path d="M 280 150 L 336 150 C 354 150 366 162 366 180 C 366 198 354 210 336 210 L 280 210 Z" fill="#0F172A" stroke="#334155" stroke-width="3" />
+    <!-- Snap Button / Silver Metallic Coin Rivet -->
+    <circle cx="334" cy="180" r="15" fill="#F1F5F9" />
+    <circle cx="334" cy="180" r="7" fill="#94A3B8" />
+
   </g>
 </svg>
