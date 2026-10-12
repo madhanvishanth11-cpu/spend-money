@@ -149,6 +149,29 @@ export const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Progressive Web App (PWA) Section */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
+          <span>Mobile App (PWA)</span>
+          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Installable
+          </span>
+        </h3>
+
+        <p className="text-xs text-slate-600 leading-relaxed">
+          SpendWise can be installed directly onto your Android phone as a standalone home-screen app.
+        </p>
+
+        <div className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-2 text-xs text-emerald-900">
+          <p className="font-semibold">How to install on Android:</p>
+          <ol className="list-decimal list-inside space-y-1 text-slate-700">
+            <li>In Google Chrome, tap the <strong>three dots (⋮)</strong> at the top right.</li>
+            <li>Tap <strong>"Install app"</strong> (or <strong>"Add to Home screen"</strong>).</li>
+            <li>Tap <strong>Install</strong> to add SpendWise directly to your app drawer.</li>
+          </ol>
+        </div>
+      </div>
     </div>
   );
 };
