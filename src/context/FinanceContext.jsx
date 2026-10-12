@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import * as db from '../services/db';
+import * as bankService from '../services/bankService';
 
 const FinanceContext = createContext(null);
 
@@ -8,6 +9,7 @@ export const FinanceProvider = ({ children }) => {
   const { user, isSupabaseConfigured } = useAuth();
 
   const [accounts, setAccounts] = useState([]);
+  const [bankConnections, setBankConnections] = useState([]);
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -22,6 +24,7 @@ export const FinanceProvider = ({ children }) => {
   const fetchData = useCallback(async () => {
     if (!user) {
       setAccounts([]);
+      setBankConnections([]);
       setCategories([]);
       setTransactions([]);
       setBudgets([]);
@@ -34,10 +37,11 @@ export const FinanceProvider = ({ children }) => {
     setError(null);
 
     try {
-      const [fetchedProfile, fetchedAccounts, fetchedCategories, fetchedTransactions, fetchedBudgets] =
+      const [fetchedProfile, fetchedAccounts, fetchedConnections, fetchedCategories, fetchedTransactions, fetchedBudgets] =
         await Promise.all([
           db.getProfile(user.id),
           db.getAccounts(),
+          bankService.getBankConnections(),
           db.getCategories(),
           db.getTransactions(),
           db.getBudgets(),
@@ -45,6 +49,7 @@ export const FinanceProvider = ({ children }) => {
 
       setProfile(fetchedProfile);
       setAccounts(fetchedAccounts);
+      setBankConnections(fetchedConnections);
       setCategories(fetchedCategories);
       setTransactions(fetchedTransactions);
       setBudgets(fetchedBudgets);
@@ -188,6 +193,7 @@ export const FinanceProvider = ({ children }) => {
       value={{
         accounts: computedAccounts,
         rawAccounts: accounts,
+        bankConnections,
         categories,
         transactions,
         budgets,
@@ -211,6 +217,14 @@ export const FinanceProvider = ({ children }) => {
         deleteAccount,
         saveBudget,
         deleteBudget,
+        syncBankConnection: async (id) => {
+          await bankService.syncBankConnection(id);
+          await fetchData();
+        },
+        disconnectBankConnection: async (id) => {
+          await bankService.disconnectBankConnection(id);
+          await fetchData();
+        },
         refreshData: fetchData,
       }}
     >
