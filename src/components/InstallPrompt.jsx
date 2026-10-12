@@ -35,8 +35,14 @@ export const InstallPrompt = () => {
       setDeferredPrompt(null);
     });
 
+    const openListener = () => {
+      setShowInstructions(true);
+    };
+    window.addEventListener('spendwise_open_install', openListener);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('spendwise_open_install', openListener);
     };
   }, []);
 
